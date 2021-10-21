@@ -305,7 +305,7 @@ Partial Class CreateNewClient
         '
         Me.cmbPackage.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.cmbPackage.FormattingEnabled = True
-        Me.cmbPackage.Items.AddRange(New Object() {"Full package + Book", "Full package", "Basic package + Book", "Basic package", "Guide only", "Book only", "Support only"})
+        Me.cmbPackage.Items.AddRange(New Object() {"Full package + Book", "Full package", "Guide only", "Book only", "Support only"})
         Me.cmbPackage.Location = New System.Drawing.Point(75, 77)
         Me.cmbPackage.Name = "cmbPackage"
         Me.cmbPackage.Size = New System.Drawing.Size(140, 21)

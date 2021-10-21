@@ -47,8 +47,6 @@ Public Class Helper
 
     Public Const PACKAGE_FULL_BOOK = "Full package + Book"
     Public Const PACKAGE_FULL = "Full package"
-    Public Const PACKAGE_BASIC_BOOK = "Basic package + Book"
-    Public Const PACKAGE_BASIC = "Basic package"
     Public Const PACKAGE_GUIDE = "Guide only"
     Public Const PACKAGE_BOOK = "Book only"
     Public Const PACKAGE_SUPPORT = "Support only"

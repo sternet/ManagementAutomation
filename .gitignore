@@ -48,3 +48,7 @@ Thumbs.db
 *.mov
 *.wmv
 
+ClientManagementAutomation/bin/
+ClientManagementAutomation/obj/
+PeriodicalInvoicesGenerator/bin/
+PeriodicalInvoicesGenerator/obj/

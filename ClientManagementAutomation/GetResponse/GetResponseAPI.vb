@@ -8,60 +8,90 @@ Imports System.Net
 
 Public Class GetResponseAPI
 
-    Private Const MY_API_KEY = "4003be56f161ef69f84d846f71818064"
+    Private Const GETRESPONSE_API_V3 = "https://api.getresponse.com/v3"
+    Private Const CRM_API_KEY = "api-key u8g664f09izpqkvpmr152sko7wsisi2q"
 
-    Private Const API_URL = "http://api2.getresponse.com"
+    Private Shared Function GetJsonResponse(ByVal isGet As Boolean, ByVal method As String, ByVal body As String) As Dictionary(Of String, Object)
 
-    Private Shared Function GetJsonResponse(ByRef method As String, ByRef requestParams As Hashtable) As Dictionary(Of String, Object)
-        Dim jss As New JavaScriptSerializer()
+        Dim uri As String = GETRESPONSE_API_V3 + method
+        If isGet Then
+            uri = uri + body
+        End If
 
-        Dim request As New Hashtable
-        request("jsonrpc") = "2.0"
-        request("id") = 1
-
-        request("method") = method
-
-        Dim paramsArray As Object() = {MY_API_KEY, requestParams}
-        request("params") = paramsArray
-
-        System.Net.ServicePointManager.Expect100Continue = False
-
-        Dim webRequest As HttpWebRequest = HttpWebRequest.Create(API_URL)
-        webRequest.Method = "POST"
-
-        Dim serializedRequest As String = jss.Serialize(request)
-        Dim requestBytes As Byte() = Encoding.UTF8.GetBytes(serializedRequest)
+        Dim webRequest As HttpWebRequest = HttpWebRequest.Create(uri)
+        With webRequest
+            If isGet Then
+                .Method = "GET"
+            Else
+                .Method = "POST"
+            End If
+            .ContentType = "application/json"
+            .Accept = "application/json"
+            .Headers.Add("X-Auth-Token", CRM_API_KEY)
+            .Timeout = 3000
+            .ReadWriteTimeout = 3000
+        End With
 
         Dim responseString As String = Nothing
 
         Try
-            Dim requestStream As Stream = webRequest.GetRequestStream()
-            requestStream.Write(requestBytes, 0, requestBytes.Length)
-            requestStream.Close()
+            If Not isGet Then
+                Dim requestStream As Stream = webRequest.GetRequestStream()
+                Dim requestBytes As Byte() = Encoding.UTF8.GetBytes(body)
+                requestStream.Write(requestBytes, 0, requestBytes.Length)
+                requestStream.Close()
+            End If
 
-            Dim response As HttpWebResponse = webRequest.GetResponse()
-            Dim responseStream As Stream = response.GetResponseStream()
+            Try
+                Dim response As HttpWebResponse = webRequest.GetResponse()
+                Dim responseStream As Stream = response.GetResponseStream()
+                Dim reader As StreamReader = New StreamReader(responseStream)
+                responseString = reader.ReadToEnd()
+                reader.Close()
+                responseStream.Close()
+                response.Close()
 
-            Dim reader As StreamReader = New StreamReader(responseStream)
-            responseString = reader.ReadToEnd()
-            reader.Close()
+                If response.StatusCode = 200 Then
+                    Dim jss As JavaScriptSerializer = New JavaScriptSerializer
+                    Dim jsonContent As Object = jss.Deserialize(Of Object)(responseString)
+                    If CType(jsonContent, System.Array).GetLength(0) = 0 Then
+                        Return Nothing
+                    End If
+                    Return jsonContent(0)
+                ElseIf response.StatusCode = 202 Then
+                    Return Nothing
+                Else
+                    Throw New InvalidOperationException("Failed to get valid response from GetResponse API for query " & body & _
+                                                            ", unsupported response code: " & response.StatusCode)
+                End If
+            Catch ex As WebException
+                If CType(ex.Response, HttpWebResponse).StatusCode = 409 Then
+                    Return Nothing
+                End If
+                Dim responseStream As Stream = ex.Response.GetResponseStream()
+                Dim reader As StreamReader = New StreamReader(responseStream)
+                responseString = reader.ReadToEnd()
+                reader.Close()
+                responseStream.Close()
 
-            responseStream.Close()
-            response.Close()
-        Catch e As Exception
-            Console.WriteLine(e.Message)
-            Environment.Exit(0)
+                Dim jss As JavaScriptSerializer = New JavaScriptSerializer
+                Dim jsonContent As Object = jss.Deserialize(Of Object)(responseString)
+                Dim errorResponse As Dictionary(Of String, Object) = CType(jsonContent, Dictionary(Of String, Object))
+                If errorResponse.ContainsKey("httpStatus") Then
+                    Throw New InvalidOperationException("Failed to get valid response from GetResponse API for query " & body & ": " & _
+                                        errorResponse("code") & ", " & errorResponse("codeDescription") & ", " & errorResponse("message") & _
+                                        ", " & New JavaScriptSerializer().Serialize(errorResponse("context")))
+                Else
+                    Dim errorContent As String = jss.Serialize(errorResponse)
+                    Throw New InvalidOperationException("Failed to get valid response from GetResponse API for query " & body & ": " & errorContent)
+                End If
+            End Try
+        Catch ex As InvalidOperationException
+            Throw ex
+        Catch ex As Exception
+            Console.WriteLine(ex.Message)
+            Throw New InvalidOperationException("Failed to get valid response from GetResponse API for query " & body & ": " & ex.Message)
         End Try
-
-        Dim jsonContent As Dictionary(Of String, Object) = jss.DeserializeObject(responseString)
-        Dim value As Object = Nothing
-        If jsonContent.TryGetValue("error", value) Then
-            Dim jsonError As Dictionary(Of String, Object) = value
-            Throw New Exception("Failed to execute request " & method & " with params " & serializedRequest & " : " & jsonError("message") & ", " & jsonError("code"))
-        End If
-        Dim jsonResponse As Dictionary(Of String, Object) = jsonContent("result")
-
-        Return jsonResponse
     End Function
 
     Private Shared Sub PrintJsonResponse(ByRef jsonResponse As Dictionary(Of String, Object), Optional ByVal tabs As String = "")
@@ -80,89 +110,38 @@ Public Class GetResponseAPI
         Console.WriteLine(tabs & "}")
     End Sub
 
-    Public Shared Function FindByEmailCampaignAndContactIds(ByRef email As String, ByVal campaignPrefix As String) As Dictionary(Of String, String)
-        Dim method As String = "get_contacts"
-
-        Dim containsObj As New Hashtable
-        containsObj("CONTAINS") = campaignPrefix & "%"
-
-        Dim nameObj As New Hashtable
-        nameObj("name") = containsObj
-
-        Dim paramsObj As New Hashtable
-        paramsObj("get_campaigns") = nameObj
-
-        Dim operatorObj As New Hashtable
-        operatorObj("EQUALS") = email
-        paramsObj("email") = operatorObj
-
-        Dim jsonResponse As Dictionary(Of String, Object) = GetJsonResponse(method, paramsObj)
-        PrintJsonResponse(jsonResponse)
-
-        Dim emailCampaigns As Dictionary(Of String, String) = New Dictionary(Of String, String)
-        For Each contactId As String In jsonResponse.Keys
-            emailCampaigns(contactId) = jsonResponse(contactId)("campaign")
-        Next
-
-        Return emailCampaigns
-    End Function
-
-    Public Shared Function GetCampaignName(ByVal campaignId As String) As String
-        Dim method As String = "get_campaign"
-
-        Dim campaignObj As New Hashtable
-        campaignObj("campaign") = campaignId
-
-        Dim jsonResponse As Dictionary(Of String, Object) = GetJsonResponse(method, campaignObj)
-        PrintJsonResponse(jsonResponse)
-
-        Return jsonResponse(campaignId)("name")
-    End Function
-
-    Public Shared Sub DeleteContact(ByVal contactId As String)
-        Dim method As String = "delete_contact"
-
-        Dim contactObj As New Hashtable
-        contactObj("contact") = contactId
-
-        Dim jsonResponse As Dictionary(Of String, Object) = GetJsonResponse(method, contactObj)
-        PrintJsonResponse(jsonResponse)
-    End Sub
-
     Public Shared Function FindCampaignIdByName(ByVal campaignName As String) As String
-        Dim method As String = "get_campaigns"
+        Dim method As String = "/campaigns"
 
-        Dim operatorObj As New Hashtable
-        operatorObj("EQUALS") = campaignName
+        Dim jsonResponse As Dictionary(Of String, Object) = GetJsonResponse(True, method, "?query[name]=" & campaignName & "&fields=campaignId,name")
+        If jsonResponse Is Nothing Then
+            Throw New InvalidOperationException("Campaing " & campaignName & " not found")
+        End If
 
-        Dim nameObj As New Hashtable
-        nameObj("name") = operatorObj
-
-        Dim jsonResponse As Dictionary(Of String, Object) = GetJsonResponse(method, nameObj)
         PrintJsonResponse(jsonResponse)
-
-        For Each campaingId As String In jsonResponse.Keys
-            Return campaingId
-        Next
-
-        Return Nothing
+        Return jsonResponse("campaignId")
     End Function
 
     Public Shared Function SubscribeToCampaign(ByVal campaignId As String, ByVal email As String, ByVal name As String) As Boolean
-        Dim method As String = "add_contact"
+        Dim method As String = "/contacts"
 
-        Dim addContactObj As New Hashtable
-        addContactObj("campaign") = campaignId
-        addContactObj("name") = name
-        addContactObj("email") = email
-        addContactObj("cycle_day") = 0
+        Dim newSubscriber As New Hashtable
+        newSubscriber("name") = name
+        Dim campaign As New Hashtable()
+        campaign.Add("campaignId", campaignId)
+        newSubscriber("campaign") = campaign
+        newSubscriber("email") = email
+        newSubscriber("dayOfCycle") = 0
 
-        Dim jsonResponse As Dictionary(Of String, Object) = GetJsonResponse(method, addContactObj)
-        PrintJsonResponse(jsonResponse)
-
-        Dim queued As Boolean = False
-        Return jsonResponse.TryGetValue("queued", queued)
+        Try
+            Dim jss As JavaScriptSerializer = New JavaScriptSerializer
+            Dim subscriber As String = jss.Serialize(newSubscriber)
+            GetJsonResponse(False, method, subscriber)
+            Return True
+        Catch e As Exception
+            Console.WriteLine(e.Message)
+            Return False
+        End Try
     End Function
-
 
 End Class

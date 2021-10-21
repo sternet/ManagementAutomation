@@ -74,7 +74,8 @@ Public Class dlgSendShippingInstructions
     End Function
 
     Private Function HasGlobulesAndBook() As Boolean
-        If customerPackage = Helper.PACKAGE_FULL_BOOK Or customerPackage = Helper.PACKAGE_BASIC_BOOK Then
+        'If customerPackage = Helper.PACKAGE_FULL_BOOK Or customerPackage = Helper.PACKAGE_BASIC_BOOK Then
+        If customerPackage = Helper.PACKAGE_FULL_BOOK Then
             Return True
         Else
             Return False

@@ -152,41 +152,17 @@ Public Class CreateNewClient
         If Not ValidateOrderInformation(generatePassword:=False, ignorePassword:=True) Then Return
         Me.Cursor = Cursors.WaitCursor
         Try
-            Dim leadsCampaignName As String = Helper.GetLeadsCampaignName(cmbLanguage.Text.Trim)
-            Dim clientsCampaignName As String = Helper.GetClientsCampaignName(cmbLanguage.Text.Trim)
-
-            Dim contactCampaignIds As Dictionary(Of String, String) = GetResponseAPI.FindByEmailCampaignAndContactIds(tbEmail.Text.Trim, leadsCampaignName)
-
-            Dim alreadySubscribed As Boolean = False
-            Dim gotDeleted As Boolean = False
-
-            For Each contactId As String In contactCampaignIds.Keys
-                Dim campaignId As String = contactCampaignIds(contactId)
-                Dim campaignName As String = GetResponseAPI.GetCampaignName(campaignId)
-                Helper.Log("Found subscrition to : " & campaignName)
-                If campaignName = leadsCampaignName Then
-                    Helper.Log("Deleting contact from : " & campaignName)
-                    GetResponseAPI.DeleteContact(contactId)
-                ElseIf campaignName.StartsWith(leadsCampaignName) And campaignName.Length > leadsCampaignName.Length Then
-                    Helper.Log("Already subscribed to the clients campaign!")
-                    alreadySubscribed = True
-                End If
-            Next
-
-            If Not alreadySubscribed Then
-                Dim clientsCampaignId As String = GetResponseAPI.FindCampaignIdByName(clientsCampaignName)
-                If clientsCampaignId Is Nothing Then
-                    Throw New Exception("Something went wrong - the campaign does not exist: " & clientsCampaignName)
-                End If
-                Helper.Log("Subscribing to the clients campaign " & clientsCampaignName)
-                If GetResponseAPI.SubscribeToCampaign(clientsCampaignId, tbEmail.Text.Trim, tbFirstName.Text.Trim) Then
-                    Helper.Log("Subscribed")
-                Else
-                    Helper.Log("Something went wrong!")
-                End If
+            Dim campaignName As String = Helper.GetClientsCampaignName(cmbLanguage.Text.Trim)
+            Dim campaignId As String = GetResponseAPI.FindCampaignIdByName(campaignName)
+            Helper.Log("Subscribing to the clients campaign " & campaignName)
+            If GetResponseAPI.SubscribeToCampaign(campaignId, tbEmail.Text.Trim, tbFirstName.Text.Trim) Then
+                Helper.Log("Subscribed")
+                lblMailingStatus.BackColor = Color.Green
+            Else
+                Helper.Log("Something went wrong!")
+                lblMailingStatus.BackColor = Color.Red
             End If
 
-            lblMailingStatus.BackColor = Color.Green
             ClearToolStripMenuItem.Enabled = True
         Catch ex As Exception
             Console.WriteLine(ex.ToString)
@@ -390,8 +366,8 @@ Public Class CreateNewClient
         Dim letterFolder = Nothing
         If cmbPackage.Text = Helper.PACKAGE_FULL Or cmbPackage.Text = Helper.PACKAGE_FULL_BOOK Or cmbPackage.Text = Helper.PACKAGE_SUPPORT Then
             letterFolder = "Full"
-        ElseIf cmbPackage.Text = Helper.PACKAGE_BASIC Or cmbPackage.Text = Helper.PACKAGE_BASIC_BOOK Or cmbPackage.Text = Helper.PACKAGE_GUIDE Then
-            letterFolder = "Basic"
+            'ElseIf cmbPackage.Text = Helper.PACKAGE_BASIC Or cmbPackage.Text = Helper.PACKAGE_BASIC_BOOK Or cmbPackage.Text = Helper.PACKAGE_GUIDE Then
+            '    letterFolder = "Basic"
         Else 'PACKAGE_BOOK
             letterFolder = "Basic"
         End If
@@ -567,8 +543,8 @@ Public Class CreateNewClient
     End Function
 
     Private Function HasShipping(ByRef packageType) As Boolean
+        'Or cmbPackage.Text = Helper.PACKAGE_BASIC Or cmbPackage.Text = Helper.PACKAGE_BASIC_BOOK _
         If cmbPackage.Text = Helper.PACKAGE_FULL Or cmbPackage.Text = Helper.PACKAGE_FULL_BOOK _
-            Or cmbPackage.Text = Helper.PACKAGE_BASIC Or cmbPackage.Text = Helper.PACKAGE_BASIC_BOOK _
             Or cmbPackage.Text = Helper.PACKAGE_BOOK Then
             Return True
         Else
