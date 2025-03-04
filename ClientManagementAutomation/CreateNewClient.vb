@@ -85,6 +85,7 @@ Public Class CreateNewClient
             Dim url As String = String.Format("{0}?firstName={1}&lastName={2}&email={3}&language={4}&password={5}&supporter={6}", DIARY_NEWCLIENT, tbFirstName.Text.Trim, tbLastName.Text.Trim, tbEmail.Text.Trim, la, passwordMD5, supporterEmail)
             Helper.Log("Invoking Diary script: " + url)
             Dim requester = New Net.WebClient
+            requester.Headers.Add("user-agent", GetUserAgent())
             requester.Encoding = Encoding.UTF8
             Dim result As String = requester.DownloadString(url)
             Helper.Log("Received response: " + result)
@@ -113,10 +114,15 @@ Public Class CreateNewClient
             MsgBox("Failed to send notification to Anat Stern " & ex.Message)
         End Try
     End Sub
+    Private Function GetUserAgent() As String
+        Dim assemblyName As String = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name
+        Dim appVersion As String = If(ApplicationDeployment.IsNetworkDeployed, ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString(), My.Application.Info.Version.ToString())
+        Return $"{assemblyName}/{appVersion}"
+    End Function
 
     Private Function BuildNotificationBody(ByRef password As String, ByRef supporterEmail As String) As String
         Dim bodyHtml As String
-        bodyHtml = String.Format("<p><strong>Клиент создан в дневнике:</strong><br/>Имя: {0}<br/>Фамилия: {1}<br/>Email: {2}<br/>Пароль: {3}<br/>Язык: {4}<br/>Сайт: {5}<br/>Консультант: {6}</p>", _
+        bodyHtml = String.Format("<p><strong>Клиент создан в дневнике:</strong><br/>Имя: {0}<br/>Фамилия: {1}<br/>Email: {2}<br/>Пароль: {3}<br/>Язык: {4}<br/>Сайт: {5}<br/>Консультант: {6}</p>",
                                     tbFirstName.Text.Trim, tbLastName.Text.Trim, tbEmail.Text.Trim, password, cmbLanguage.Text, cmbSites.Text, supporterEmail)
         bodyHtml = bodyHtml & String.Format("<p><strong>Данные о пакете и оплате:</strong><br/>Пакет: {0}<br/>Оплата: {1}<br/>Способ: {2}</p>", cmbPackage.Text, tbAmount.Text.Trim, cmbPaymentMethod.Text)
         Return bodyHtml
@@ -131,6 +137,7 @@ Public Class CreateNewClient
             Helper.Log("Invoking Site script: " + url)
             Dim requester = New Net.WebClient
             requester.Encoding = Encoding.UTF8
+            requester.Headers.Add("User-Agent", GetUserAgent())
             Dim result As String = requester.DownloadString(url)
             Helper.Log("Received response: " + result)
             If result.Contains("successfully") Then
@@ -372,7 +379,7 @@ Public Class CreateNewClient
             letterFolder = "Basic"
         End If
 
-        Dim bodyFilePath As String = AppDomain.CurrentDomain.BaseDirectory & _
+        Dim bodyFilePath As String = AppDomain.CurrentDomain.BaseDirectory &
             "FirstEmail\" & letterFolder & "\Letter." & Helper.GetShortLanguage(cmbLanguage.Text) & ".html"
         If Not File.Exists(bodyFilePath) Then
             Throw New Exception("Letter not found for package " & cmbPackage.Text.Trim & " and language " & cmbLanguage.Text)
@@ -398,17 +405,17 @@ Public Class CreateNewClient
     Private Function BuildFirstClientEmailAttachments() As String()
         Dim baseFilePath As String = AppDomain.CurrentDomain.BaseDirectory & "FirstEmail\Files\" & Helper.GetLongLanguage(cmbLanguage.Text, cmbSites.Text) & "\"
         If cmbLanguage.Text = Helper.LANG_HEBREW Then
-            Return New String() { _
-                baseFilePath & "Guide.pdf", _
-                baseFilePath & "Checklist.pdf", _
-                baseFilePath & "Phase 1.pdf", _
-                baseFilePath & "Phase 2.pdf", _
+            Return New String() {
+                baseFilePath & "Guide.pdf",
+                baseFilePath & "Checklist.pdf",
+                baseFilePath & "Phase 1.pdf",
+                baseFilePath & "Phase 2.pdf",
                 baseFilePath & "Phase 4.pdf"}
         Else
-            Return New String() { _
-                baseFilePath & "Checklist.pdf", _
-                baseFilePath & "Phase 1.pdf", _
-                baseFilePath & "Phase 2.pdf", _
+            Return New String() {
+                baseFilePath & "Checklist.pdf",
+                baseFilePath & "Phase 1.pdf",
+                baseFilePath & "Phase 2.pdf",
                 baseFilePath & "Phase 4.pdf"}
         End If
     End Function
@@ -427,7 +434,7 @@ Public Class CreateNewClient
     Private Function GetLogFileName() As String
         Dim desktopFolder As String = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
         Dim logFileName As String = Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().ProcessName) & ".log"
-        return desktopFolder & "\" & logFileName
+        Return desktopFolder & "\" & logFileName
     End Function
 
     Private Sub SetConsoleOutput()

@@ -38,12 +38,12 @@ Public Class Helper
     Public Const LEADS_CAMPAIGN_NAME_FINLAND = "simeonsindieet"
     Public Const LEADS_CAMPAIGN_NAME_SWEDEN = "simeonsdietse"
 
-    Public Const FULL_SITE_RUSSIAN = "http://www.dietasimeonsa.eu"
-    Public Const FULL_SITE_HEBREW = "http://www.dietatsimeons.co.il"
-    Public Const FULL_SITE_ESTONIAN = "http://www.simeonsidieet.ee"
-    Public Const FULL_SITE_ENGLISH = "http://www.simeonsdiet.co.uk"
-    Public Const FULL_SITE_FINNISH = "http://www.simeonsindieetti.fi"
-    Public Const FULL_SITE_SWEDISH = "http://www.simeonsdiet.se"
+    Public Const FULL_SITE_RUSSIAN = "https://www.dietasimeonsa.eu"
+    Public Const FULL_SITE_HEBREW = "https://www.dietatsimeons.co.il"
+    Public Const FULL_SITE_ESTONIAN = "https://www.simeonsidieet.ee"
+    Public Const FULL_SITE_ENGLISH = "https://www.simeonsdiet.co.uk"
+    Public Const FULL_SITE_FINNISH = "https://www.simeonsindieetti.fi"
+    Public Const FULL_SITE_SWEDISH = "https://www.simeonsdiet.se"
 
     Public Const PACKAGE_FULL_BOOK = "Full package + Book"
     Public Const PACKAGE_FULL = "Full package"

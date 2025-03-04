@@ -52,3 +52,8 @@ ClientManagementAutomation/bin/
 ClientManagementAutomation/obj/
 PeriodicalInvoicesGenerator/bin/
 PeriodicalInvoicesGenerator/obj/
+/Backup
+/.vs
+/ClientManagementAutomation/.vs
+/PeriodicalInvoicesGenerator/.vs
+/ClientManagementAutomation/bin/Debug/ClientManagementAutomation.exe.config
